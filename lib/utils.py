@@ -18,11 +18,12 @@ def printHelp(logger):
     logger.info("")
     logger.info("   === Medslik extract.py ===")
     logger.info("")
-    logger.info("   You must invoke the extract with the mandatory arguments --dates=")
-    logger.info("   and --inputFolder=. The value for dates parameter should be comma separated dates as:")
-    logger.info("   $ python3 extract.py --dates=20201005,20201006,20201007 --inputFolder=input/")
+    logger.info("   You must invoke the extract with the mandatory arguments:")
+    logger.info("   --dates=")
+    logger.info("   --windFolder=")
+    logger.info("   --currFolder=")
+    logger.info("   --outFolder=")
     logger.info("")
-
-def processCurrFiles(inputFiles, logger):
-    
-    logger.info(" Not yet implemented!")
+    logger.info("   Example:")
+    logger.info("   $ python3 extract.py --dates=20201005,20201006,20201007 --windFolder=input/Sk1 --currFolder=input/H3k --outFolder=output")
+    logger.info("")

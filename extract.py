@@ -36,17 +36,19 @@ if __name__ == "__main__":
     #
     #############################################################
     
-    inputFolder = dates = None
+    windFolder = currFolder = outFolder = dates = None
     
     try:
-        options, rem = getopt.getopt(sys.argv[1:], 'd:w:c:h', ['dates=','windFolder=', 'currFolder=', 'help'])
+        options, rem = getopt.getopt(sys.argv[1:], 'd:o:w:c:h', ['dates=','windFolder=', 'currFolder=', 'outFolder=', 'help'])
         for opt, arg in options:
             if opt in ('-d', '--dates'):
                 dates = arg.split(",")
             elif opt in ('-w', '--windFolder'):
                 windFolder = arg
-            elif opt in ('-c', '--currFolder'):
+            elif opt in ('-c', '--currFolder'):                
                 currFolder = arg
+            elif opt in ('-c', '--outFolder'):
+                outFolder = arg
             elif opt in ('-h', '--help'):
                 printHelp(logger)
                 sys.exit(0)
@@ -56,7 +58,7 @@ if __name__ == "__main__":
         printHelp(logger)
         sys.exit(1)
 
-    if (not dates) or (not windFolder) or (not currFolder):
+    if (not dates) or (not windFolder) or (not currFolder) or (not outFolder):
         logger.error("Wrong number of arguments!")
         printHelp(logger)
         sys.exit(1)    
@@ -150,17 +152,17 @@ if __name__ == "__main__":
         # TODO - apply seaoverland to superficial currents
 
         # create .rel files (one for every timestep)
-        for t in range(1): # range(timesteps):
+        for t in range(timesteps):
 
             # build the file name
-            relFile = "relo%s%s.rel" % (date, str(t).zfill(2))
+            relFile = "%s/relo%s%s.rel" % (outFolder, date, str(t).zfill(2))
             rf = open(relFile, "w")
             
             # generate a rel file
             logger.info(" Generating file %s" % relFile)
 
             # write heading
-            rf.write(f'{"lat": <10} {"lon": <10} {"SST": <10} {"u_srf": <10} {"v_srf": <10} {"u_10m": <10} {"v_10m": <10} {"u_30m": <10} {"v_30m": <10} {"u_120m": <10} {"v_120m": <10}\n')
+            rf.write(f'{"lat": <9} {"lon": <9} {"SST": <9} {"u_srf": <9} {"v_srf": <9} {"u_9m": <9} {"v_9m": <9} {"u_30m": <9} {"v_30m": <9} {"u_120m": <9} {"v_120m": <9}\n')
 
             # build the file content
             for ind_lon in range(len(cropped_lon)):
