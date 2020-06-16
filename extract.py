@@ -160,9 +160,14 @@ if __name__ == "__main__":
             
             # generate a rel file
             logger.info(" Generating file %s" % relFile)
-
+            
             # write heading
-            rf.write(f'{"lat": <9} {"lon": <9} {"SST": <9} {"u_srf": <9} {"v_srf": <9} {"u_9m": <9} {"v_9m": <9} {"u_30m": <9} {"v_30m": <9} {"u_120m": <9} {"v_120m": <9}\n')
+            # MERCATOR model 9 km forecast data for 05/08/2019 01:00
+            # Subregion of the Global Ocean:
+            #  16.33332  17.99998  39.66673  40.91674   21   16   Geog. limits
+            #   213   0.0
+            rf.write("%f  %f  %f  %f  %s  %s  Geog. limits\n" % (cropped_lon.min(), cropped_lon.max(), cropped_lat.min(), cropped_lat.max(), len(cropped_lon), len(cropped_lat)))
+            rf.write(f'    {"lat": <10} {"lon": <10} {"SST": <10} {"u_srf": <10} {"v_srf": <10} {"u_10m": <10} {"v_10m": <10} {"u_30m": <10} {"v_30m": <10} {"u_120m": <10} {"v_120m": <10}\n')
 
             # build the file content
             for ind_lon in range(len(cropped_lon)):
@@ -180,7 +185,7 @@ if __name__ == "__main__":
                     v = cropped_v[t,:,ind_lat,ind_lon]
                     
                     if not((u.count() == 0) and (v.count() == 0)):
-                        rf.write(f'{lat: <10.4f} {lon: <10.4f} {sst: <10.4f} {u.data[0]: <10.4f} {v.data[0]: <10.4f} {u.data[1]: <10.4f} {v.data[1]: <10.4f} {u.data[2]: <10.4f} {v.data[2]: <10.4f} {u.data[3]: <10.4f} {v.data[3]: <10.4f}\n')
+                        rf.write(f'    {lat: <10.4f} {lon: <10.4f} {sst: <10.4f} {u.data[0]: <10.4f} {v.data[0]: <10.4f} {u.data[1]: <10.4f} {v.data[1]: <10.4f} {u.data[2]: <10.4f} {v.data[2]: <10.4f} {u.data[3]: <10.4f} {v.data[3]: <10.4f}\n')
 
             # close file
             rf.close()
