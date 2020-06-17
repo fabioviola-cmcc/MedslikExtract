@@ -14,6 +14,7 @@ from datetime import datetime
 
 # local requirements
 from lib.utils import *
+from lib.seaoverland import *
 
 
 # main
@@ -149,11 +150,19 @@ if __name__ == "__main__":
         whereNaN = np.isnan(cropped_v)
         cropped_v[whereNaN] = 9999.
         
-        # TODO - apply seaoverland to superficial currents
-
         # create .rel files (one for every timestep)
         for t in range(timesteps):
 
+            # invoke seaoverland on u surface
+            u_srf = cropped_u[t,0,:,:]
+            seaoverland(u_srf, 2)
+            cropped_u[t,0,:,:] = u_srf
+
+            # invoke seaoverland on v surface
+            v_srf = cropped_v[t,0,:,:]
+            seaoverland(v_srf, 2)
+            cropped_v[t,0,:,:] = v_srf
+            
             # determine the date and time
             curr_time = "%2.0f:00" % t
             curr_date = "%s/%s/%s" % (date[0:2], date[2:4], date[4:6])
@@ -166,7 +175,6 @@ if __name__ == "__main__":
             logger.info(" Generating file %s" % relFile)
             
             # write heading
-            #   213   0.0
             rf.write("MERCATOR model 9 km forecast data for %s %s\n" % (curr_date, curr_time))
             rf.write("Subregion of the Global Ocean:\n")
             rf.write("%f  %f  %f  %f  %s  %s  Geog. limits\n" % (cropped_lon.min(), cropped_lon.max(),
@@ -176,7 +184,7 @@ if __name__ == "__main__":
             rf.write(f'    {"lat": <10} {"lon": <10} {"SST": <10} {"u_srf": <10} {"v_srf": <10} {"u_10m": <10} ')        
             rf.write(f'{"v_10m": <10} {"u_30m": <10} {"v_30m": <10} {"u_120m": <10} {"v_120m": <10}\n')
             
-            # build the file content
+            # write the file content
             for ind_lon in range(len(cropped_lon)):
                 for ind_lat in range(len(cropped_lat)):
 

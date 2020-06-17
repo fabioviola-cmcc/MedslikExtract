@@ -155,13 +155,13 @@ if __name__ == "__main__":
         if not (row[0] in u10_values.keys()):
             u10_values[row[0]] = {}
         if not (row[1] in u10_values[row[0]].keys()):
-            u10_values[row[0]][row[1]] = row[5]
+            u10_values[row[0]][row[1]] = row[3]
             
         # fill v10_values data structure
         if not (row[0] in v10_values.keys()):
             v10_values[row[0]] = {}
         if not (row[1] in v10_values[row[0]].keys()):
-            v10_values[row[0]][row[1]] = row[6]
+            v10_values[row[0]][row[1]] = row[4]
             
     lat_list = sorted(lat_set)[:]
     lon_list = sorted(lon_set)[:]
