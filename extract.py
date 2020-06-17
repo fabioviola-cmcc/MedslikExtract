@@ -154,6 +154,10 @@ if __name__ == "__main__":
         # create .rel files (one for every timestep)
         for t in range(timesteps):
 
+            # determine the date and time
+            curr_time = "%2.0f:00" % t
+            curr_date = "%s/%s/%s" % (date[0:2], date[2:4], date[4:6])
+            
             # build the file name
             relFile = "%s/relo%s%s.rel" % (outFolder, date, str(t).zfill(2))
             rf = open(relFile, "w")
@@ -162,13 +166,16 @@ if __name__ == "__main__":
             logger.info(" Generating file %s" % relFile)
             
             # write heading
-            # MERCATOR model 9 km forecast data for 05/08/2019 01:00
-            # Subregion of the Global Ocean:
-            #  16.33332  17.99998  39.66673  40.91674   21   16   Geog. limits
             #   213   0.0
-            rf.write("%f  %f  %f  %f  %s  %s  Geog. limits\n" % (cropped_lon.min(), cropped_lon.max(), cropped_lat.min(), cropped_lat.max(), len(cropped_lon), len(cropped_lat)))
-            rf.write(f'    {"lat": <10} {"lon": <10} {"SST": <10} {"u_srf": <10} {"v_srf": <10} {"u_10m": <10} {"v_10m": <10} {"u_30m": <10} {"v_30m": <10} {"u_120m": <10} {"v_120m": <10}\n')
-
+            rf.write("MERCATOR model 9 km forecast data for %s %s\n" % (curr_date, curr_time))
+            rf.write("Subregion of the Global Ocean:\n")
+            rf.write("%f  %f  %f  %f  %s  %s  Geog. limits\n" % (cropped_lon.min(), cropped_lon.max(),
+                                                                 cropped_lat.min(), cropped_lat.max(),
+                                                                 len(cropped_lon), len(cropped_lat)))
+            rf.write("  %s\t0.0\n" % cropped_t[t,0,:,:].count())
+            rf.write(f'    {"lat": <10} {"lon": <10} {"SST": <10} {"u_srf": <10} {"v_srf": <10} {"u_10m": <10} ')        
+            rf.write(f'{"v_10m": <10} {"u_30m": <10} {"v_30m": <10} {"u_120m": <10} {"v_120m": <10}\n')
+            
             # build the file content
             for ind_lon in range(len(cropped_lon)):
                 for ind_lat in range(len(cropped_lat)):
@@ -185,14 +192,14 @@ if __name__ == "__main__":
                     v = cropped_v[t,:,ind_lat,ind_lon]
                     
                     if not((u.count() == 0) and (v.count() == 0)):
-                        rf.write(f'    {lat: <10.4f} {lon: <10.4f} {sst: <10.4f} {u.data[0]: <10.4f} {v.data[0]: <10.4f} {u.data[1]: <10.4f} {v.data[1]: <10.4f} {u.data[2]: <10.4f} {v.data[2]: <10.4f} {u.data[3]: <10.4f} {v.data[3]: <10.4f}\n')
+                        rf.write(f'    {lat: <10.4f} {lon: <10.4f} {sst: <10.4f} {u.data[0]: <10.4f} {v.data[0]: <10.4f} {u.data[1]: <10.4f} ')
+                        rf.write(f'{v.data[1]: <10.4f} {u.data[2]: <10.4f} {v.data[2]: <10.4f} {u.data[3]: <10.4f} {v.data[3]: <10.4f}\n')
 
             # close file
             rf.close()
                         
         # print an empty line to have a better output...
         logger.info(" ")
-
 
         
     #############################################################
