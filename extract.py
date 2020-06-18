@@ -40,7 +40,7 @@ if __name__ == "__main__":
     windFolder = currFolder = outFolder = dates = None
     
     try:
-        options, rem = getopt.getopt(sys.argv[1:], 'd:o:w:c:h', ['dates=','windFolder=', 'currFolder=', 'outFolder=', 'help'])
+        options, rem = getopt.getopt(sys.argv[1:], 'd:o:w:u:c:h', ['dates=','windFolder=', 'currFolder=', 'outWindFolder=', 'outCurrFolder=', 'help'])
         for opt, arg in options:
             if opt in ('-d', '--dates'):
                 dates = arg.split(",")
@@ -48,8 +48,10 @@ if __name__ == "__main__":
                 windFolder = arg
             elif opt in ('-c', '--currFolder'):                
                 currFolder = arg
-            elif opt in ('-c', '--outFolder'):
-                outFolder = arg
+            elif opt in ('-o', '--outWindFolder'):
+                outWindFolder = arg
+            elif opt in ('-u', '--outCurrFolder'):
+                outCurrFolder = arg
             elif opt in ('-h', '--help'):
                 printHelp(logger)
                 sys.exit(0)
@@ -59,7 +61,7 @@ if __name__ == "__main__":
         printHelp(logger)
         sys.exit(1)
 
-    if (not dates) or (not windFolder) or (not currFolder) or (not outFolder):
+    if (not dates) or (not windFolder) or (not currFolder) or (not outWindFolder) or (not outCurrFolder):
         logger.error("Wrong number of arguments!")
         printHelp(logger)
         sys.exit(1)    
@@ -124,7 +126,7 @@ if __name__ == "__main__":
 
         # determine the number of timesteps
         timesteps = len(tDataset.variables[timevar])
-        
+
         # if first round, then read lat and lon
         if firstRound:
             firstRound = False
@@ -168,7 +170,7 @@ if __name__ == "__main__":
             curr_date = "%s/%s/%s" % (date[0:2], date[2:4], date[4:6])
             
             # build the file name
-            relFile = "%s/relo%s%s.rel" % (outFolder, date, str(t).zfill(2))
+            relFile = "%s/relo%s%s.rel" % (outCurrFolder, date, str(t).zfill(2))
             rf = open(relFile, "w")
             
             # generate a rel file
@@ -198,7 +200,9 @@ if __name__ == "__main__":
                     # read u and v at 0, 10, 30 and 120m
                     u = cropped_u[t,:,ind_lat,ind_lon]
                     v = cropped_v[t,:,ind_lat,ind_lon]
-                    
+
+                    # print only lines where not all the values are masked
+                    # since these values represent the land
                     if not((u.count() == 0) and (v.count() == 0)):
                         rf.write(f'    {lat: <10.4f} {lon: <10.4f} {sst: <10.4f} {u.data[0]: <10.4f} {v.data[0]: <10.4f} {u.data[1]: <10.4f} ')
                         rf.write(f'{v.data[1]: <10.4f} {u.data[2]: <10.4f} {v.data[2]: <10.4f} {u.data[3]: <10.4f} {v.data[3]: <10.4f}\n')
@@ -215,7 +219,17 @@ if __name__ == "__main__":
     # processing winds
     #
     #############################################################
-        
+    
+    latitudes = None
+    longitudes = None
+    timesteps = None
+
+    # set variable names
+    timevar = "time"
+    latvar = "lat"
+    lonvar = "lon"
+    
+    firstRound = True
     for date in dates:
         
         # debug info
@@ -228,21 +242,85 @@ if __name__ == "__main__":
         logger.info(" Processing winds file %s" % inputFile)        
         
         # open wind file
-        windFile = Dataset(inputFile)
+        wDataset = Dataset(inputFile)
         
-        ### - create .sk1 files (one for every day)
-        # SKIRON forecast data for 17/05/2020
-        # Subregion of the Global Ocean with limits:
-        # 16.37500  18.00000  41.12500  39.75000   14   12   Geog. limits 168   0.0
-        #
-        # lat        lon        u00       v00      u01      v01      u02      v02      u03     v03      u04      v04      u05     v05      u06      v06
-        # ...
-        #
-        # Ragionamento: probabilmente, questi file hanno 6 colonne per la u e 6 per la v
-        # in quanto campionano i timestep di origine (nel mio caso 24) per leggere ogni 4 ore?
+        # if first round, then read lat and lon
+        if firstRound:
+            firstRound = False
+
+            # determine latitudes and longitudes
+            latitudes = wDataset.variables[latvar][:]
+            longitudes = wDataset.variables[lonvar][:]
+
+            # determine the number of timesteps
+            timesteps = len(wDataset.variables[timevar])
+
+        # determine the window on which to crop data
+        xwindow = np.logical_and(longitudes>=alon1, longitudes<=alon2)
+        ywindow = np.logical_and(latitudes>=alat1, latitudes<=alat2)        
+
+        # crop data
+        cropped_lon = longitudes[xwindow]
+        cropped_lat = latitudes[ywindow]
+        cropped_u = wDataset.variables["U10M"][:,ywindow,xwindow]
+        cropped_v = wDataset.variables["V10M"][:,ywindow,xwindow]
+
+        # replace nan with 9999
+        whereNaN = np.isnan(cropped_u)
+        cropped_u[whereNaN] = 9999.
+        whereNaN = np.isnan(cropped_v)
+        cropped_v[whereNaN] = 9999.
+
+        # apply seaoverland
+        for t in range(timesteps):
+
+            # sea overland on u
+            u_so = cropped_u[t,:,:]
+            seaoverland(u_so, 1)
+            cropped_u[t,:,:] = u_so
+
+            # sea overland on v
+            v_so = cropped_v[t,:,:]
+            seaoverland(v_so, 1)
+            cropped_v[t,:,:] = v_so
         
-        # close wind file
-        windFile.close()
+        # create .sk1 files (one for date)
+        skFile = "%s/sk1_%s.sk1" % (outWindFolder, date)
+        sf = open(skFile, "w")
+
+        # write headers
+        curr_date = "%s/%s/%s" % (date[0:2], date[2:4], date[4:6])
+        sf.write("SKIRON forecast data for %s\n" % curr_date)
+        sf.write("Subregion of the Global Ocean with limits:\n")
+        sf.write("%f  %f  %f  %f  %s  %s  Geog. limits\n" % (cropped_lon.min(), cropped_lon.max(),
+                                                             cropped_lat.min(), cropped_lat.max(),
+                                                             len(cropped_lon), len(cropped_lat)))
+        sf.write("  %s\t0.0\n" % cropped_u[0,:,:].count())
+        
+        sf.write(f'    {"lat": <7} {"lon": <7} ')
+        for t in range(timesteps):
+            sf.write(f'{"u%s": <7} {"v%s": <7} ' % (str(t).zfill(2), str(t).zfill(2)))
+        sf.write("\n")
+
+        # write file content
+        for ind_lon in range(len(cropped_lon)):
+            for ind_lat in range(len(cropped_lat)):
+
+                # get lat and lon
+                lat = cropped_lat.data[ind_lat]
+                lon = cropped_lon.data[ind_lon]
+                
+                # print only lines where not all the values are masked
+                # since these values represent the land
+                if not(cropped_u[:,ind_lat,ind_lon].count() and cropped_v[:,ind_lat,ind_lon].count()):
+                    sf.write(f'{lat: <7} {lon: <7} ')
+                    for t in range(timesteps):
+                        sf.write(f'{wDataset.variables["U10M"][t,ind_lat,ind_lon]: <10.4f} {wDataset.variables["V10M"][t,ind_lat,ind_lon]: <10.4f} ')
+                    sf.write("\n")
+                
+        # close wind files
+        wDataset.close()
+        sf.close()
         
         # print an empty line to have a better output...
         logger.info(" ")
